@@ -12,6 +12,10 @@ class Employee(Base):
     department = Column(String)
     phone = Column(String)
 
+    # Связь с документами
+    documents = relationship("Document", back_populates="executor")
+
+
 class Manager(Base):
     __tablename__ = "managers"
 
@@ -21,6 +25,10 @@ class Manager(Base):
     position = Column(String)
     department = Column(String)
     phone = Column(String)
+
+    # Связь с документами
+    documents = relationship("Document", back_populates="manager")
+
 
 class Document(Base):
     __tablename__ = "documents"
@@ -33,5 +41,7 @@ class Document(Base):
     executor_id = Column(Integer, ForeignKey("employees.id"))
     manager_id = Column(Integer, ForeignKey("managers.id"))
 
+    # Связь с сотрудником
     executor = relationship("Employee", back_populates="documents")
+    # Связь с менеджером
     manager = relationship("Manager", back_populates="documents")
