@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+psycopg2-binary  # Для PostgreSQL
+python-dotenv    # Для работы с .env файлами

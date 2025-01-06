@@ -1,54 +1,117 @@
-import React from "react";
-import { markDocumentComplete } from "../services/api";
+import React, { useState, useEffect } from "react";
+import { getDocuments, updateDocumentDeadline } from "../services/api";
 import { Document } from "../types";
 
-interface Props {
-    documents: Document[];
-    onDocumentUpdated: (updatedDocument: Document) => void;
-}
+const DocumentList: React.FC = () => {
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string>("В работе");
+  const [editingDocumentId, setEditingDocumentId] = useState<number | null>(null);
+  const [newDeadline, setNewDeadline] = useState<string>("");
 
-const DocumentList: React.FC<Props> = ({ documents, onDocumentUpdated }) => {
-    const handleComplete = async (id: number) => {
-        try {
-            // Вызываем API для завершения документа
-            const updatedDocument = await markDocumentComplete(id);
-
-            // Обновляем документ в состоянии
-            onDocumentUpdated(updatedDocument);
-        } catch (error) {
-            console.error("Ошибка при завершении документа:", error);
-        }
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      try {
+        const data = await getDocuments(statusFilter);
+        setDocuments(data);
+      } catch (error) {
+        console.error("Ошибка при загрузке документов:", error);
+      }
     };
 
-    return (
-        <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-2xl font-semibold mb-4">Список документов</h2>
-            {documents.length > 0 ? (
-                <ul>
-                    {documents.map((doc) => (
-                        <li key={doc.id} className="mb-2">
-                            <strong>Тип:</strong> {doc.type} <br />
-                            <strong>Описание:</strong> {doc.description} <br />
-                            <strong>Срок исполнения:</strong>{" "}
-                            {new Date(doc.deadline).toLocaleDateString()} <br />
-                            <strong>Статус:</strong> {doc.status} <br />
-                            {/* Отображаем кнопку только для статуса "В работе" */}
-                            {doc.status === "В работе" && (
-                                <button
-                                    onClick={() => handleComplete(doc.id)}
-                                    className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 mt-2"
-                                >
-                                    Завершить
-                                </button>
-                            )}
-                        </li>
-                    ))}
-                </ul>
-            ) : (
-                <p>Нет документов для отображения.</p>
-            )}
-        </div>
-    );
+    fetchDocuments();
+  }, [statusFilter]);
+
+  const handleEditDeadline = (documentId: number) => {
+    setEditingDocumentId(documentId);
+  };
+
+  const handleSaveDeadline = async (documentId: number) => {
+    try {
+      console.log("Отправляемые данные:", { documentId, newDeadline }); // Лог данных
+      const updatedDocument = await updateDocumentDeadline(documentId, newDeadline);
+      setDocuments((prev) =>
+        prev.map((doc) => (doc.id === documentId ? updatedDocument : doc))
+      );
+      setEditingDocumentId(null);
+      setNewDeadline("");
+    } catch (error) {
+      console.error("Ошибка при обновлении дедлайна:", error);
+    }
+  };
+  
+
+  return (
+    <div>
+      <h2 className="text-2xl font-semibold mb-4">Список документов</h2>
+
+      {/* Фильтрация по статусу */}
+      <div className="flex gap-4 mb-4">
+        <button
+          onClick={() => setStatusFilter("В работе")}
+          className={`px-6 py-2 rounded-full ${
+            statusFilter === "В работе" ? "bg-blue-500 text-white" : "bg-gray-200"
+          }`}
+        >
+          В работе
+        </button>
+        <button
+          onClick={() => setStatusFilter("Просрочено")}
+          className={`px-6 py-2 rounded-full ${
+            statusFilter === "Просрочено" ? "bg-blue-500 text-white" : "bg-gray-200"
+          }`}
+        >
+          Просрочено
+        </button>
+        <button
+          onClick={() => setStatusFilter("Завершено")}
+          className={`px-6 py-2 rounded-full ${
+            statusFilter === "Завершено" ? "bg-blue-500 text-white" : "bg-gray-200"
+          }`}
+        >
+          Завершено
+        </button>
+      </div>
+
+      {/* Список документов */}
+      <ul>
+        {documents.length === 0 ? (
+          <p>Нет документов для отображения.</p>
+        ) : (
+          documents.map((doc) => (
+            <li key={doc.id} className="border-b py-2">
+              <p>Тип: {doc.type}</p>
+              <p>Описание: {doc.description}</p>
+              <p>Срок исполнения: {doc.deadline}</p>
+              <p>Статус: {doc.status}</p>
+              {editingDocumentId === doc.id ? (
+                <div>
+                  <input
+                    type="date"
+                    value={newDeadline}
+                    onChange={(e) => setNewDeadline(e.target.value)}
+                    className="border rounded px-3 py-2 mt-1"
+                  />
+                  <button
+                    onClick={() => handleSaveDeadline(doc.id)}
+                    className="bg-green-500 text-white px-4 py-2 rounded ml-2"
+                  >
+                    Сохранить
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => handleEditDeadline(doc.id)}
+                  className="bg-blue-500 text-white px-4 py-2 rounded"
+                >
+                  Изменить дедлайн
+                </button>
+              )}
+            </li>
+          ))
+        )}
+      </ul>
+    </div>
+  );
 };
 
 export default DocumentList;
