@@ -1,13 +1,14 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Security
 from sqlalchemy.orm import Session
 from database import engine, Base, get_db
 from fastapi.middleware.cors import CORSMiddleware
-from models import Document
+from models import Document, Position, Department
 from datetime import date
 from typing import List
 import schemas, crud
 from schemas import DocumentCreate, DeadlineUpdate
 import logging 
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -24,6 +25,26 @@ app.add_middleware(
 
 Base.metadata.create_all(bind=engine)
 
+security = HTTPBearer()
+
+def get_current_role(credentials: HTTPAuthorizationCredentials = Security(security)):
+    token = credentials.credentials
+    
+    if token == "admin_token":
+        return "admin"
+    elif token == "manager_token":
+        return "manager"
+    elif token == "employee_token":
+        return "employee"
+    else:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+@app.get("/admin/employees/", response_model=List[schemas.Employee])
+def admin_get_employees(role: str = Depends(get_current_role), db: Session = Depends(get_db)):
+    if role != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    return crud.get_employees(db)
+
 @app.get("/employees/", response_model=List[schemas.Employee])
 def read_employees(db: Session = Depends(get_db)):
     employees = crud.get_employees(db)
@@ -34,7 +55,9 @@ def create_employee(employee: schemas.EmployeeCreate, db: Session = Depends(get_
     return crud.create_employee(db, employee)
 
 @app.get("/employees/{employee_id}", response_model=schemas.Employee)
-def get_employee(employee_id: int, db: Session = Depends(get_db)):
+def get_employee(employee_id: int, role: str = Depends(get_current_role), db: Session = Depends(get_db)):
+    if role not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Access denied")
     return crud.get_employee(db, employee_id)
 
 @app.put("/employees/{employee_id}")
@@ -114,17 +137,23 @@ def get_documents_by_status(status: str, db: Session = Depends(get_db)):
 
 
 @app.patch("/documents/{document_id}/complete")
-def mark_document_complete(document_id: int, db: Session = Depends(get_db)):
-    # Находим документ
+def mark_document_complete(
+    document_id: int,
+    role: str = Depends(get_current_role),
+    db: Session = Depends(get_db),
+):
+    if role not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+
     document = db.query(Document).filter(Document.id == document_id).first()
     if not document:
         raise HTTPException(status_code=404, detail="Документ не найден")
 
-    # Обновляем статус
     document.status = "Завершено"
     db.commit()
     db.refresh(document)
     return {"message": "Документ завершён", "document": document.id}
+
 
 @app.put("/documents/{document_id}/deadline/")
 def update_document_deadline(document_id: int, update: DeadlineUpdate, db: Session = Depends(get_db)):
@@ -150,3 +179,11 @@ def update_executor(document_id: int, new_executor_id: int, db: Session = Depend
 @app.get("/documents/")
 def get_all_documents(db: Session = Depends(get_db)):
     return db.query(Document).all()
+
+@app.get("/departments/", response_model=List[str])
+def get_departments(db: Session = Depends(get_db)):
+    return db.query(Department).all()
+
+@app.get("/positions/", response_model=List[str])
+def get_positions(db: Session = Depends(get_db)):
+    return db.query(Position).all()

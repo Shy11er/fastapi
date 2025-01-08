@@ -1,5 +1,5 @@
 import axios from "axios";
-import {DocumentCreate, Employee, Manager, EmployeeCreate, ManagerCreate} from "../types";
+import {DocumentCreate, Employee, Manager, EmployeeCreate, ManagerCreate, Document } from "../types";
 
 const API_URL = "http://127.0.0.1:8000";
 
