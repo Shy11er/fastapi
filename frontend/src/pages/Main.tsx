@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { GrDocumentText } from "react-icons/gr";
 import DocumentForm from "../components/DocumentForm";
 import DocumentList from "../components/DocumentList";
 import EmployeeForm from "../components/EmployeeForm";
@@ -7,6 +8,8 @@ import ManagerForm from "../components/ManagerForm";
 import ManagerList from "../components/ManagerList";
 import { getDocuments } from "../services/api";
 import { Document } from "../types";
+import { GrUserWorker } from "react-icons/gr";
+import { GrUserManager } from "react-icons/gr";
 
 const Main = () => {
     const [activeTab, setActiveTab] = useState<string>("documents");
@@ -71,32 +74,35 @@ const Main = () => {
                 <div className="flex justify-center gap-4 mb-8">
                     <button
                         onClick={() => setActiveTab("documents")}
-                        className={`px-6 py-2 rounded-full font-semibold ${
+                        className={`px-6 py-2 rounded-full font-semibold flex flex-row items-center ${
                             activeTab === "documents"
                                 ? "bg-blue-500 text-white"
                                 : "bg-gray-200 text-gray-800"
                         } hover:bg-blue-600`}
                     >
+                        <GrDocumentText />
                         Документы
                     </button>
                     <button
                         onClick={() => setActiveTab("employees")}
-                        className={`px-6 py-2 rounded-full font-semibold ${
+                        className={`px-6 py-2 rounded-full font-semibold flex flex-row items-center ${
                             activeTab === "employees"
                                 ? "bg-blue-500 text-white"
                                 : "bg-gray-200 text-gray-800"
                         } hover:bg-blue-600`}
                     >
+                        <GrUserWorker />
                         Сотрудники
                     </button>
                     <button
                         onClick={() => setActiveTab("managers")}
-                        className={`px-6 py-2 rounded-full font-semibold ${
+                        className={`px-6 py-2 rounded-full font-semibold flex flex-row items-center ${
                             activeTab === "managers"
                                 ? "bg-blue-500 text-white"
                                 : "bg-gray-200 text-gray-800"
                         } hover:bg-blue-600`}
                     >
+                        <GrUserManager />
                         Менеджеры
                     </button>
                 </div>

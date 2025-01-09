@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { getDepartments, getManagers, getPositions, removeEmployee } from "../services/api";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import {
+    demoteManagerToEmployee,
+    getDepartments,
+    getManagers,
+    getPositions,
+    removeEmployee,
+} from "../services/api";
 import { Employee } from "../types";
 import { parseToken } from "../utils/parseToken";
 
@@ -74,12 +82,25 @@ const ManagerList: React.FC<ManagerListProps> = ({ onEditManager }) => {
         console.log("Токен отсутствует.");
     }
 
+    const handleDemoteToEmployee = async (id: number) => {
+        try {
+            await demoteManagerToEmployee(id);
+            setManagers((prev) => prev.filter((manager) => manager.id !== id));
+            toast.success("Менеджер успешно понижен до сотрудника");
+        } catch (error) {
+            console.error("Ошибка при понижении менеджера:", error);
+            toast.error("Не удалось понизить менеджера");
+        }
+    };
+
     const onDeleteManager = async (id: number) => {
         try {
             await removeEmployee(id);
-            alert("Менеджер удален");
+            setManagers((prev) => prev.filter((manager) => manager.id !== id));
+            toast.success("Менеджер удален");
         } catch (error) {
             console.error(error);
+            toast.error("Не удалось удалить менеджера");
         }
     };
 
@@ -107,12 +128,21 @@ const ManagerList: React.FC<ManagerListProps> = ({ onEditManager }) => {
                                     Редактировать
                                 </button>
                             )}
+                            {decodedToken.sub === "admin" && (
+                                <button
+                                    onClick={() =>
+                                        handleDemoteToEmployee(manager.id)
+                                    }
+                                    className="ml-4 text-yellow-500"
+                                >
+                                    Понизить до сотрудника
+                                </button>
+                            )}
                             {(decodedToken.sub === "admin" ||
                                 decodedToken.id === manager.id) && (
                                 <button
                                     className="ml-4 text-red-500"
-                                    onClick={() => 
-                                        onDeleteManager(manager.id)}
+                                    onClick={() => onDeleteManager(manager.id)}
                                 >
                                     Удалить
                                 </button>

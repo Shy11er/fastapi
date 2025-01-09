@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import {
     getDocuments,
     markDocumentComplete,
@@ -16,7 +18,7 @@ const DocumentList: React.FC = () => {
     const [newDeadline, setNewDeadline] = useState<string>("");
 
     const token = localStorage.getItem("token");
-    const currentUser = token ? parseToken(token) : { id: 0, role: "" };
+    const currentUser = token ? parseToken(token) : { id: 0, sub: "" };
 
     useEffect(() => {
         const fetchDocuments = async () => {
@@ -48,8 +50,10 @@ const DocumentList: React.FC = () => {
             );
             setEditingDocumentId(null);
             setNewDeadline("");
+            toast.success("Дедлайн успешно обновлен");
         } catch (error) {
             console.error("Ошибка при обновлении дедлайна:", error);
+            toast.error("Ошибка при обновлении дедлайна");
         }
     };
 
@@ -63,15 +67,24 @@ const DocumentList: React.FC = () => {
                         : doc
                 )
             );
+            toast.success("Документ успешно завершен");
         } catch (error) {
             console.error("Ошибка при завершении документа:", error);
+            toast.error("Ошибка при завершении документа");
         }
     };
 
     const canCompleteDocument = (doc: Document) => {
+        console.log(
+            doc.status,
+            currentUser.sub,
+            doc.manager_id,
+            doc.executor_id,
+            doc
+        );
         return (
             doc.status !== "Завершено" &&
-            (currentUser.role === "admin" ||
+            (currentUser.sub === "admin" ||
                 doc.manager_id === currentUser.id ||
                 doc.executor_id === currentUser.id)
         );
@@ -127,35 +140,41 @@ const DocumentList: React.FC = () => {
                             <p>Срок исполнения: {doc.deadline}</p>
                             <p>Статус: {doc.status}</p>
 
-                            {editingDocumentId === doc.id &&
-                            doc.status !== "Завершено" ? (
-                                <div>
-                                    <input
-                                        type="date"
-                                        value={newDeadline}
-                                        onChange={(e) =>
-                                            setNewDeadline(e.target.value)
-                                        }
-                                        className="border rounded px-3 py-2 mt-1"
-                                    />
-                                    <button
-                                        onClick={() =>
-                                            handleSaveDeadline(doc.id)
-                                        }
-                                        className="bg-green-500 text-white px-4 py-2 rounded ml-2"
-                                    >
-                                        Сохранить
-                                    </button>
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={() => handleEditDeadline(doc.id)}
-                                    className="bg-blue-500 text-white px-4 py-2 rounded"
-                                >
-                                    Изменить дедлайн
-                                </button>
+                            {doc.status !== "Завершено" && (
+                                <>
+                                    {editingDocumentId === doc.id ? (
+                                        <div>
+                                            <input
+                                                type="date"
+                                                value={newDeadline}
+                                                onChange={(e) =>
+                                                    setNewDeadline(
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className="border rounded px-3 py-2 mt-1"
+                                            />
+                                            <button
+                                                onClick={() =>
+                                                    handleSaveDeadline(doc.id)
+                                                }
+                                                className="bg-green-500 text-white px-4 py-2 rounded ml-2"
+                                            >
+                                                Сохранить
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() =>
+                                                handleEditDeadline(doc.id)
+                                            }
+                                            className="bg-blue-500 text-white px-4 py-2 rounded"
+                                        >
+                                            Изменить дедлайн
+                                        </button>
+                                    )}
+                                </>
                             )}
-
                             {canCompleteDocument(doc) && (
                                 <button
                                     onClick={() =>

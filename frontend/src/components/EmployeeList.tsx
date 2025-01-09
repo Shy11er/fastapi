@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { getDepartments, getEmployees, getPositions, promoteToManager, removeEmployee } from "../services/api";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import {
+    getDepartments,
+    getEmployees,
+    getPositions,
+    promoteToManager,
+    removeEmployee,
+} from "../services/api";
 import { Employee } from "../types";
 import { parseToken } from "../utils/parseToken";
 
@@ -9,8 +17,12 @@ interface EmployeeListProps {
 
 const EmployeeList: React.FC<EmployeeListProps> = ({ onEditEmployee }) => {
     const [employees, setEmployees] = useState<Employee[]>([]);
-    const [departments, setDepartments] = useState<{ id: number; name: string }[]>([]);
-    const [positions, setPositions] = useState<{ id: number; name: string }[]>([]);
+    const [departments, setDepartments] = useState<
+        { id: number; name: string }[]
+    >([]);
+    const [positions, setPositions] = useState<{ id: number; name: string }[]>(
+        []
+    );
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -73,20 +85,23 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ onEditEmployee }) => {
     const handlePromoteToManager = async (employeeId: number) => {
         try {
             await promoteToManager(employeeId);
-            alert("Сотрудник успешно повышен до менеджера!");
-            const updatedEmployees = employees.map((employee) =>
-                employee.id === employeeId ? { ...employee, role: "manager" } : employee
+            setEmployees((prev) =>
+                prev.filter((employee) => employee.id !== employeeId)
             );
-            setEmployees(updatedEmployees);
+            toast.success("Сотрудник успешно повышен до менеджера!");
         } catch (error) {
             console.error("Ошибка при повышении сотрудника:", error);
             setError("Не удалось повысить сотрудника.");
+            toast.error("Не удалось повысить сотрудника!");
         }
     };
 
     const onDelete = async (id: number) => {
         try {
             await removeEmployee(id);
+            setEmployees((prev) =>
+                prev.filter((employee) => employee.id !== employeeId)
+            );
             alert("Сотрудник удален");
         } catch (error) {
             console.error(error);
@@ -120,7 +135,9 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ onEditEmployee }) => {
                             )}
                             {decodedToken.sub === "admin" && (
                                 <button
-                                    onClick={() => handlePromoteToManager(employee.id)}
+                                    onClick={() =>
+                                        handlePromoteToManager(employee.id)
+                                    }
                                     className="ml-4 text-green-500"
                                 >
                                     Повысить до менеджера
@@ -130,8 +147,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ onEditEmployee }) => {
                                 decodedToken.id === employee.id) && (
                                 <button
                                     className="ml-4 text-red-500"
-                                    onClick={() => 
-                                        onDelete(employee.id)}
+                                    onClick={() => onDelete(employee.id)}
                                 >
                                     Удалить
                                 </button>

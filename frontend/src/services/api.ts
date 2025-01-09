@@ -80,7 +80,7 @@ export const updateEmployee = async (id: number, data: Employee) => {
     return await response.data;
 };
 
-export const removeEmployee = async (id: number)=> {
+export const removeEmployee = async (id: number) => {
     const response = await axios.delete(`${API_URL}/employees/${id}`);
     return response.data;
 };
@@ -109,5 +109,11 @@ export const promoteToManager = async (employeeId: number) => {
     const response = await axios.post(
         `${API_URL}/employees/${employeeId}/promote`
     );
+    return response.data;
+};
+
+export const demoteManagerToEmployee = async (id: number) => {
+    const response = await axios.post(`${API_URL}/managers/${id}/demote`);
+
     return response.data;
 };

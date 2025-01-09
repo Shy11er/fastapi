@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { addDocument, getEmployees, getManagers } from "../services/api";
 import { parseToken } from "../utils/parseToken";
 
@@ -51,9 +53,17 @@ const DocumentForm: React.FC = () => {
         e.preventDefault();
         try {
             await addDocument(formData);
-            alert("Документ добавлен!");
+            setFormData({
+                type: "входящий",
+                description: "",
+                deadline: "",
+                executor_id: "",
+                manager_id: "",
+            });
+            toast.success("Документ добавлен!");
         } catch (error) {
             console.error("Ошибка при добавлении документа:", error);
+            toast.error("Ошибка при добавлении документа");
         }
     };
 

@@ -6,6 +6,8 @@ import {
     updateEmployee,
 } from "../services/api";
 import { Employee } from "../types";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface EmployeeFormProps {
     employeeId: number;
@@ -75,8 +77,10 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
                 );
                 onEmployeeUpdated(updatedEmployee);
                 fetchEmployee();
+                toast.success("Информация о сотруднике успешно изменена!");
             } catch (error) {
                 console.error("Ошибка при обновлении сотрудника:", error);
+                toast.error("Ошибка при обновлении сотрудника")
             }
         }
     };

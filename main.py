@@ -278,3 +278,17 @@ def promote_to_manager(employee_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(employee)
     return {"message": "Сотрудник повышен до менеджера"}
+
+@app.post("/managers/{id}/demote")
+def demote_manager_to_employee(
+    id: int, 
+    db: Session = Depends(get_db)
+):
+    manager = db.query(Employee).filter(Employee.id == id, Employee.role == "manager").first()
+    if not manager:
+        raise HTTPException(status_code=404, detail="Менеджер не найден")
+
+    manager.role = "employee"
+    db.commit()
+    db.refresh(manager)
+    return {"message": "Менеджер успешно понижен до сотрудника"}
