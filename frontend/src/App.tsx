@@ -1,17 +1,25 @@
 import React from "react";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import MainPage from "./pages/Main";
+import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import AuthPage from "./pages/Auth";
+import MainPage from "./pages/Main";
+import PrivateRoute from "./PrivateRoute";
 
 const App: React.FC = () => {
-  return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<MainPage />} />
-        <Route path="/auth" element={<AuthPage />} />
-      </Routes>
-    </Router>
-  );
+    return (
+        <Router>
+            <Routes>
+                <Route
+                    path="/"
+                    element={
+                        <PrivateRoute>
+                            <MainPage />
+                        </PrivateRoute>
+                    }
+                />
+                <Route path="/auth" element={<AuthPage />} />
+            </Routes>
+        </Router>
+    );
 };
 
 export default App;

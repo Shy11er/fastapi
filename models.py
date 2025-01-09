@@ -3,42 +3,55 @@ from sqlalchemy.orm import relationship
 from database import Base
 from enum import Enum as PyEnum
 
-class Role(PyEnum):
-    EMPLOYEE = "employee"
-    MANAGER = "manager"
-    ADMIN = "admin"
+class Department(Base):
+    __tablename__ = "departments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+
+    # Связь с сотрудниками
+    employees = relationship("Employee", back_populates="department")
+
+
+class Position(Base):
+    __tablename__ = "positions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+
+    # Связь с сотрудниками
+    employees = relationship("Employee", back_populates="position")
+
 
 class Employee(Base):
     __tablename__ = "employees"
 
     id = Column(Integer, primary_key=True, index=True)
-    first_name = Column(String, index=True)
-    last_name = Column(String, index=True)
-    position = Column(String)
-    department = Column(String)
-    phone = Column(String)
-    role = Column(Enum(Role), default=Role.EMPLOYEE)
+    first_name = Column(String, nullable=False)
+    last_name = Column(String, nullable=False)
+    phone = Column(String, unique=True, nullable=False)
+    password = Column(String, nullable=False)
+    role = Column(String, nullable=False)
 
-    documents = relationship("Document", back_populates="executor")
-    
+    executor_documents = relationship(
+        "Document",
+        foreign_keys="Document.executor_id",
+        back_populates="executor"
+    )
+
+    manager_documents = relationship(
+        "Document",
+        foreign_keys="Document.manager_id",
+        back_populates="manager"
+    )
+
+    # Связь с отделом
     department_id = Column(Integer, ForeignKey("departments.id"))
     department = relationship("Department", back_populates="employees")
 
+    # Связь с должностью
     position_id = Column(Integer, ForeignKey("positions.id"))
     position = relationship("Position", back_populates="employees")
-
-class Manager(Base):
-    __tablename__ = "managers"
-
-    id = Column(Integer, primary_key=True, index=True)
-    first_name = Column(String, index=True)
-    last_name = Column(String, index=True)
-    position = Column(String)
-    department = Column(String)
-    phone = Column(String)
-    role = Column(Enum(Role), default=Role.MANAGER)
-
-    documents = relationship("Document", back_populates="manager")
     
 class Document(Base):
     __tablename__ = "documents"
@@ -48,29 +61,18 @@ class Document(Base):
     description = Column(String)
     deadline = Column(Date)
     status = Column(String)
+
     executor_id = Column(Integer, ForeignKey("employees.id"))
-    manager_id = Column(Integer, ForeignKey("managers.id"))
+    manager_id = Column(Integer, ForeignKey("employees.id"))
 
-    # Связь с сотрудником
-    executor = relationship("Employee", back_populates="documents")
-    # Связь с менеджером
-    manager = relationship("Manager", back_populates="documents")
+    executor = relationship(
+        "Employee",
+        foreign_keys=[executor_id],
+        back_populates="executor_documents"
+    )
 
-class Department(Base):
-    __tablename__ = "departments"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, nullable=False)
-    
-    class Config:
-        orm_mode = True
-
-class Position(Base):
-    __tablename__ = "positions"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, nullable=False)
-    
-    class Config:
-        orm_mode = True
-        
+    manager = relationship(
+        "Employee",
+        foreign_keys=[manager_id],
+        back_populates="manager_documents"
+    )

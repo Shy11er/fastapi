@@ -1,20 +1,10 @@
 from sqlalchemy.orm import Session
-from models import Employee, Manager, Document
-from schemas import EmployeeCreate, ManagerCreate, DocumentCreate
-from sqlalchemy.orm import Session
-from models import Employee, Manager
-import schemas
+from models import Employee, Document
+from schemas import DocumentCreate
 
 # Функции для сотрудников
 def get_employees(db: Session):
-    return db.query(Employee).all()
-
-def create_employee(db: Session, employee: schemas.EmployeeCreate):
-    db_employee = Employee(**employee.dict())
-    db.add(db_employee)
-    db.commit()
-    db.refresh(db_employee)
-    return db_employee
+    return db.query(Employee).where(Employee.role == "employee").all()
 
 # Получение сотрудника по ID
 def get_employee(db: Session, employee_id: int):
@@ -22,18 +12,7 @@ def get_employee(db: Session, employee_id: int):
 
 # Функции для менеджеров
 def get_managers(db: Session):
-    return db.query(Manager).all()
-
-def get_manager(db: Session, manager_id: int):
-    return db.query(Manager).filter(Manager.id == manager_id).first()
-
-
-def create_manager(db: Session, manager: schemas.ManagerCreate):
-    db_manager = Manager(**manager.dict())
-    db.add(db_manager)
-    db.commit()
-    db.refresh(db_manager)
-    return db_manager
+    return db.query(Employee).where(Employee.role == "manager").all()
 
 def create_document(db: Session, document: DocumentCreate):
     db_document = Document(**document.dict())
@@ -59,16 +38,3 @@ def update_employee(db: Session, employee_id: int, employee_data: dict):
         return db_employee  # Возвращаем обновленного сотрудника
     
     return None  # Если сотрудник не найден, возвращаем None
-
-def update_manager(db: Session, manager_id: int, manager: schemas.ManagerUpdate):
-    db_manager = db.query(Manager).filter(Manager.id == manager_id).first()
-    if db_manager:
-        db_manager.first_name = manager.first_name
-        db_manager.last_name = manager.last_name
-        db_manager.position = manager.position
-        db_manager.department = manager.department
-        db_manager.phone = manager.phone  # Обновляем номер телефона
-        db.commit()
-        db.refresh(db_manager)
-        return db_manager
-    return None

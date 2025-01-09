@@ -1,75 +1,100 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { getDepartments, getPositions, register } from "../services/api";
 
 interface RegisterFormProps {
     onSwitchToLogin: () => void;
 }
 
 const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         first_name: "",
         last_name: "",
-        position: "",
-        department: "",
+        position: 0,
+        department: 0,
         phone: "",
         password: "",
     });
 
-    const [departments, setDepartments] = useState<string[]>([]);
-    const [positions, setPositions] = useState<string[]>([]);
+    const [departments, setDepartments] = useState<
+        { id: number; name: string }[]
+    >([]);
+    const [positions, setPositions] = useState<{ id: number; name: string }[]>(
+        []
+    );
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const departmentsResponse = await fetch("http://localhost:8000/departments/");
-                const positionsResponse = await fetch("http://localhost:8000/positions/");
-
-                const departmentsData = await departmentsResponse.json();
-                const positionsData = await positionsResponse.json();
+                const departmentsData = await getDepartments();
+                const positionsData = await getPositions();
 
                 setDepartments(departmentsData);
                 setPositions(positionsData);
             } catch (error) {
                 console.error("Ошибка загрузки данных:", error);
+                setError("Ошибка загрузки данных");
             }
         };
 
         fetchData();
     }, []);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handlePhoneInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const sanitizedValue = e.target.value.replace(/\D/g, "");
+        setFormData((prevData) => ({
+            ...prevData,
+            phone: sanitizedValue,
+        }));
+    };
+
+    const handleChange = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    ) => {
         const { name, value } = e.target;
         setFormData((prevData) => ({
             ...prevData,
-            [name]: value,
+            [name]:
+                name === "department" || name === "position"
+                    ? parseInt(value)
+                    : value,
         }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError(null);
+
+        if (!formData.department) {
+            setError("Пожалуйста, выберите отдел.");
+            return;
+        }
+        if (!formData.position) {
+            setError("Пожалуйста, выберите должность.");
+            return;
+        }
+
         try {
-            const response = await fetch("http://localhost:8000/employees/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(formData),
-            });
-            if (response.ok) {
+            const response = await register(formData);
+            if (response.access_token) {
+                localStorage.setItem("token", response.access_token);
                 alert("Регистрация прошла успешно");
                 setFormData({
                     first_name: "",
                     last_name: "",
-                    position: "",
-                    department: "",
+                    position: 0,
+                    department: 0,
                     phone: "",
                     password: "",
                 });
-            } else {
-                alert("Ошибка регистрации");
+
+                navigate("/");
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Ошибка при регистрации:", error);
-            alert("Произошла ошибка");
+            setError(error.response?.data?.detail || "Произошла ошибка");
         }
     };
 
@@ -96,14 +121,24 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
                 {Object.keys(fieldLabels).map((field) => (
                     <div key={field} className="mb-4">
                         <label htmlFor={field} className="block text-gray-700">
-                            {fieldLabels[field as keyof typeof fieldLabels].name}
+                            {
+                                fieldLabels[field as keyof typeof fieldLabels]
+                                    .name
+                            }
                         </label>
                         <input
-                            type={fieldLabels[field as keyof typeof fieldLabels].type}
+                            type={
+                                fieldLabels[field as keyof typeof fieldLabels]
+                                    .type
+                            }
                             id={field}
                             name={field}
                             value={formData[field as keyof typeof formData]}
-                            onChange={handleChange}
+                            onChange={
+                                field === "phone"
+                                    ? handlePhoneInput
+                                    : handleChange
+                            }
                             className="w-full mt-2 px-4 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
                             required
                         />
@@ -122,10 +157,10 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
                         className="w-full mt-2 px-4 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
                         required
                     >
-                        <option value="">Выберите отдел</option>
+                        <option value={0}>Выберите отдел</option>
                         {departments.map((department) => (
-                            <option key={department} value={department}>
-                                {department}
+                            <option key={department.id} value={department.id}>
+                                {department.name}
                             </option>
                         ))}
                     </select>
@@ -143,14 +178,16 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
                         className="w-full mt-2 px-4 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
                         required
                     >
-                        <option value="">Выберите должность</option>
+                        <option value={0}>Выберите должность</option>
                         {positions.map((position) => (
-                            <option key={position} value={position}>
-                                {position}
+                            <option key={position.id} value={position.id}>
+                                {position.name}
                             </option>
                         ))}
                     </select>
                 </div>
+
+                {error && <p className="text-red-500 text-center">{error}</p>}
 
                 <button
                     type="submit"
@@ -158,6 +195,19 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
                 >
                     Зарегистрировать
                 </button>
+
+                <div className="mt-4 text-center">
+                    <p className="text-sm">
+                        Уже есть аккаунт?{" "}
+                        <button
+                            type="button"
+                            onClick={onSwitchToLogin}
+                            className="text-blue-500 hover:underline"
+                        >
+                            Авторизоваться
+                        </button>
+                    </p>
+                </div>
             </form>
         </div>
     );

@@ -1,53 +1,60 @@
 from sqlalchemy.orm import Session
-from database import engine, Base
-from models import Employee, Manager, Document
-from datetime import date
+from passlib.context import CryptContext
+from database import engine, SessionLocal
+from models import Employee, Department, Position
 
-# Создаем все таблицы, если их еще нет
-Base.metadata.create_all(bind=engine)
+# Контекст для хэширования паролей
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Функция для заполнения базы данных
+# Данные для отделов и должностей
+departments_data = [
+    {"name": "Закупки"},
+    {"name": "Склад"},
+    {"name": "Продажи"},
+]
+
+positions_data = [
+    {"name": "Менеджер по закупкам"},
+    {"name": "Кладовщик"},
+    {"name": "Менеджер по продажам"},
+]
+
 def seed_data():
-    # Подключение к базе данных
-    with Session(engine) as session:
-        # Добавляем сотрудников
-        employees = [
-            Employee(first_name="Иван", last_name="Иванов", position="Инженер", department="Отдел разработки", phone="123456789"),
-            Employee(first_name="Петр", last_name="Петров", position="Аналитик", department="Отдел аналитики", phone="987654321"),
-        ]
-        session.add_all(employees)
+    db: Session = SessionLocal()
+    try:
+        # Добавляем отделы
+        for department in departments_data:
+            existing = db.query(Department).filter(Department.name == department["name"]).first()
+            if not existing:
+                db.add(Department(**department))
 
-        # Добавляем менеджеров
-        managers = [
-            Manager(first_name="Сергей", last_name="Сергеев", position="Руководитель", department="Управление проектами", phone="1122334455"),
-            Manager(first_name="Ольга", last_name="Ольгина", position="Менеджер", department="Маркетинг", phone="5566778899"),
-        ]
-        session.add_all(managers)
+        # Добавляем должности
+        for position in positions_data:
+            existing = db.query(Position).filter(Position.name == position["name"]).first()
+            if not existing:
+                db.add(Position(**position))
 
-        # Добавляем документы
-        documents = [
-            Document(
-                type="входящий",
-                description="Документ о поставке",
-                deadline=date(2024, 11, 30),
-                status="В работе",
-                executor_id=1,
-                manager_id=1,
-            ),
-            Document(
-                type="исходящий",
-                description="Отчет о проекте",
-                deadline=date(2024, 12, 15),
-                status="Просрочено",
-                executor_id=2,
-                manager_id=2,
-            ),
-        ]
-        session.add_all(documents)
+        # Добавляем аккаунт администратора
+        admin_exists = db.query(Employee).filter(Employee.phone == "1").first()
+        if not admin_exists:
+            admin = Employee(
+                first_name="Админ",
+                last_name="Администратор",
+                phone="1",
+                password=pwd_context.hash("admin"),  # Хэшируем пароль
+                role="admin",
+                department_id=None,  # Админ не привязан к отделу
+                position_id=None,    # Админ не привязан к должности
+            )
+            db.add(admin)
 
-        # Сохраняем изменения
-        session.commit()
+        db.commit()
+        print("Данные успешно добавлены в базу.")
+    except Exception as e:
+        print(f"Ошибка при заполнении базы данных: {e}")
+        db.rollback()
+    finally:
+        db.close()
 
 if __name__ == "__main__":
     seed_data()
-    print("База данных заполнена тестовыми данными!")

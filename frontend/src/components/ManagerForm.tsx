@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Manager } from "../types";
-import { updateManager, getManager } from "../services/api";
+import { updateManager, getManager, updateEmployee } from "../services/api";
 
 interface ManagerFormProps {
   managerId: number;
@@ -33,7 +33,7 @@ const ManagerForm: React.FC<ManagerFormProps> = ({ managerId, onManagerUpdated }
     e.preventDefault();
     if (managerData) {
       try {
-        const updatedManager = await updateManager(managerId, managerData);
+        const updatedManager = await updateEmployee(managerId, managerData);
         onManagerUpdated(updatedManager);
       } catch (error) {
         console.error("Ошибка при обновлении менеджера:", error);

@@ -1,10 +1,13 @@
 import React, { useState } from "react";
+import { login } from "../services/api";
+import { useNavigate } from "react-router-dom";
 
 interface LoginFormProps {
     onSwitchToRegister: () => void;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         phone: "",
         password: "",
@@ -13,25 +16,42 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const response = await fetch("http://localhost:8000/employees/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(formData),
+            const response = await login(formData);
+            localStorage.setItem("token", response.access_token);
+            alert("Авторизация прошла успешно");
+            setFormData({
+                phone: "",
+                password: "",
             });
-            if (response.ok) {
-                alert("Регистрация прошла успешно");
-                setFormData({
-                    phone: "",
-                    password: "",
-                });
-            } else {
-                alert("Ошибка регистрации");
-            }
+            navigate("/");
         } catch (error) {
-            console.error("Ошибка при регистрации:", error);
+            console.error("Ошибка при авторизации:", error);
             alert("Произошла ошибка");
+        }
+    };
+
+    const handlePhoneInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const sanitizedValue = e.target.value.replace(/\D/g, "");
+        setFormData({
+            ...formData,
+            phone: sanitizedValue,
+        });
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        const allowedKeys = [
+            "Backspace",
+            "Delete",
+            "ArrowLeft",
+            "ArrowRight",
+            "Tab",
+        ];
+        if (
+            !/^[0-9]$/.test(e.key) &&
+            !allowedKeys.includes(e.key)
+        ) {
+            e.preventDefault();
+            alert("Введите только числа");
         }
     };
 
@@ -43,20 +63,17 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
                 </h2>
                 <form onSubmit={handleLogin}>
                     <div className="mb-4">
-                        <label htmlFor="email" className="block text-gray-700">
+                        <label htmlFor="phone" className="block text-gray-700">
                             Телефон
                         </label>
                         <input
                             type="text"
-                            id="email"
+                            id="phone"
                             className="w-full mt-2 px-4 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
                             value={formData.phone}
-                            onChange={(e) =>
-                                setFormData({
-                                    ...formData,
-                                    phone: e.target.value,
-                                })
-                            }
+                            onChange={handlePhoneInput}
+                            onKeyDown={handleKeyDown}
+                            inputMode="numeric"
                             required
                         />
                     </div>
